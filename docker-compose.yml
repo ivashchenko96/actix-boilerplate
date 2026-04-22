@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/actix_boilerplate
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - db
+      - redis
+      - nats
+    volumes:
+      - ./.env:/app/.env
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: actix_boilerplate
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  nats:
+    image: nats:2.9-alpine
+    ports:
+      - "4222:4222"
+    command: ["-js"]
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,44 @@
+[server]
+host = "0.0.0.0"
+port = 8000
+workers = 8
+shutdown_timeout = 60
+
+[database]
+max_connections = 50
+min_connections = 10
+connect_timeout = 15
+idle_timeout = 300
+max_lifetime = 3600
+
+[redis]
+max_connections = 30
+connect_timeout = 10
+idle_timeout = 600
+
+[security]
+bcrypt_cost = 14  # Higher cost for production
+max_login_attempts = 3
+lockout_duration = 1800  # 30 minutes
+
+[logging]
+level = "warn"
+format = "json"
+
+[feature_flags]
+registration_enabled = true
+email_verification = true
+password_reset = true
+swagger_ui = false  # Disable Swagger in production
+metrics = true
+
+[cron]
+enabled = true
+
+[app]
+environment = "production"
+
+[rate_limiting]
+enabled = true
+requests_per_minute = 30  # Stricter in production
+burst_size = 50

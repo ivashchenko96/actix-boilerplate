@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    image: actix-boilerplate:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - NATS_URL=${NATS_URL}
+      - ENVIRONMENT=production
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+      - nats
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  nats:
+    image: nats:2.9-alpine
+    command: ["-js", "--store_dir=/data"]
+    volumes:
+      - nats_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

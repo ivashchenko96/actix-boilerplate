@@ -1,0 +1,38 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+
+# Log files
+*.log
+
+# Docker files we don't need in the image
+docker-compose.yml
+docker-compose.prod.yml
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+docs/
+
+# CI/CD files
+.github/
+
+# Development scripts
+scripts/
+deploy/
+
+# Test files
+tests/
+
+# Temporary files
+*.tmp
+*.temp
