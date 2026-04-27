@@ -51,7 +51,7 @@ High-level flow:
 - `src/modules/*` → domain modules
 - `src/middleware/*` → cross-cutting concerns
 
-For deeper details see [`ARCHITECTURE.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/ARCHITECTURE.md).
+For deeper details see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
@@ -105,7 +105,7 @@ Core envs commonly used:
 - `JWT_SECRET`
 - `SMTP_*`
 
-More details: [`docs/configuration.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/configuration.md).
+More details: [`docs/configuration.md`](docs/configuration.md).
 
 ---
 
@@ -140,23 +140,23 @@ make docker-compose-up
 - Metrics endpoint (`/metrics`) can be toggled via feature flags.
 - Cron jobs can be enabled/disabled in config.
 
-Deployment references are in `/deploy` and [`docs/deployment.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/deployment.md).
+Deployment references are in `/deploy` and [`docs/deployment.md`](docs/deployment.md).
 
 ---
 
 ## Documentation map
 
-- Architecture: [`ARCHITECTURE.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/ARCHITECTURE.md)
-- Modules: [`docs/modules.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/modules.md)
-- i18n: [`docs/i18n.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/i18n.md)
-- Logging: [`docs/logging.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/logging.md)
-- Cron: [`docs/cron.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/docs/cron.md)
+- Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Modules: [`docs/modules.md`](docs/modules.md)
+- i18n: [`docs/i18n.md`](docs/i18n.md)
+- Logging: [`docs/logging.md`](docs/logging.md)
+- Cron: [`docs/cron.md`](docs/cron.md)
 
 ---
 
 ## AI agent docs
 
-- Agent behavior and contribution skill model: [`SKILLS.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/SKILLS.md)
-- MCP integration and safety contract: [`AI_MCP.md`](/home/runner/work/actix-boilerplate/actix-boilerplate/AI_MCP.md)
+- Agent behavior and contribution skill model: [`SKILLS.md`](SKILLS.md)
+- MCP integration and safety contract: [`AI_MCP.md`](AI_MCP.md)
 
 These docs are intended for autonomous/semi-autonomous coding agents and reviewers.
