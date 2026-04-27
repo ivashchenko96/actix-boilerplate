@@ -1,0 +1,9 @@
+name: Deploy bare metal
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run rsync/scp and restart systemd service via SSH."

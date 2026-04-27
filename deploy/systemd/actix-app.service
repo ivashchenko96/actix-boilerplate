@@ -1,0 +1,15 @@
+[Unit]
+Description=Actix Boilerplate API
+After=network.target
+
+[Service]
+Type=simple
+User=actix
+WorkingDirectory=/opt/actix-boilerplate
+EnvironmentFile=/etc/actix-boilerplate.env
+ExecStart=/opt/actix-boilerplate/api
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
