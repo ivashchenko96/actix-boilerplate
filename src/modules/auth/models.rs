@@ -21,7 +21,7 @@ pub struct RefreshTokenRow {
     pub jti: Uuid,
     pub user_id: Uuid,
     pub token_hash: String,
-    pub revoked: bool,
+    pub is_revoked: bool,
     pub created_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
 }

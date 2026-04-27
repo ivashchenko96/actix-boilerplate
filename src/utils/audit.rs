@@ -20,7 +20,7 @@ pub struct AuditEntry {
 /// Persist an audit entry.
 pub async fn write_audit_log(pool: &PgPool, entry: AuditEntry) -> AppResult<()> {
     sqlx::query(
-        r#"INSERT INTO audit_logs (id, user_id, action, entity, entity_id, before_data, after_data, ip_address, user_agent, created_at)
+        r#"INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, old_values, new_values, ip_address, user_agent, timestamp)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())"#,
     )
     .bind(Uuid::new_v4())

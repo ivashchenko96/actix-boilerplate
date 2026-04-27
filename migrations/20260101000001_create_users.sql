@@ -4,6 +4,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(200),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     locale VARCHAR(10) NOT NULL DEFAULT 'en',
@@ -18,6 +19,7 @@ CREATE TABLE users (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     profile_image_url TEXT,
     metadata JSONB DEFAULT '{}',
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

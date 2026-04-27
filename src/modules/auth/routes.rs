@@ -1,25 +1,10 @@
-use actix_web::{web, HttpResponse, Result};
+use actix_web::web;
 use super::controller;
 
+/// Register auth routes.
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.route("/login", web::post().to(login))
-       .route("/logout", web::post().to(logout))
-       .route("/register", web::post().to(register))
-       .route("/refresh", web::post().to(refresh_token));
-}
-
-async fn login() -> Result<HttpResponse> {
-    controller::login().await
-}
-
-async fn logout() -> Result<HttpResponse> {
-    controller::logout().await
-}
-
-async fn register() -> Result<HttpResponse> {
-    controller::register().await
-}
-
-async fn refresh_token() -> Result<HttpResponse> {
-    controller::refresh_token().await
+    cfg.route("/login", web::post().to(controller::login))
+        .route("/logout", web::post().to(controller::logout))
+        .route("/register", web::post().to(controller::register))
+        .route("/refresh", web::post().to(controller::refresh_token));
 }
