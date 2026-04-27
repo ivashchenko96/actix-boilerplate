@@ -1,7 +1,6 @@
 pub mod jobs;
 
 use tokio_cron_scheduler::{JobScheduler, Job};
-use std::sync::Arc;
 use anyhow::Result;
 
 /// Cron registry for managing scheduled jobs
@@ -11,13 +10,12 @@ pub struct CronRegistry {
 }
 
 impl CronRegistry {
-    pub fn new() -> Self {
-        let scheduler = JobScheduler::new().expect("Failed to create job scheduler");
-        
-        Self {
+    pub async fn new() -> Result<Self> {
+        let scheduler = JobScheduler::new().await?;
+        Ok(Self {
             scheduler,
             job_count: 0,
-        }
+        })
     }
 
     /// Start the cron scheduler
@@ -46,14 +44,8 @@ impl CronRegistry {
     }
 
     /// Shutdown the scheduler
-    pub async fn shutdown(&self) -> Result<()> {
+    pub async fn shutdown(&mut self) -> Result<()> {
         self.scheduler.shutdown().await?;
         Ok(())
-    }
-}
-
-impl Default for CronRegistry {
-    fn default() -> Self {
-        Self::new()
     }
 }

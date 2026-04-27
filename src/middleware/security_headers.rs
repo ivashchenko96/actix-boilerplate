@@ -245,8 +245,8 @@ mod tests {
         assert!(!resp.headers().contains_key("x-powered-by"));
     }
 
-    #[test]
-    fn test_security_utils() {
+    #[actix_web::test]
+    async fn test_security_utils() {
         // Test nonce generation
         let nonce = SecurityUtils::generate_nonce();
         assert!(!nonce.is_empty());
@@ -262,8 +262,8 @@ mod tests {
         assert!(!SecurityUtils::is_valid_csp("invalid csp policy"));
     }
 
-    #[test]
-    fn test_recommended_headers() {
+    #[actix_web::test]
+    async fn test_recommended_headers() {
         let prod_headers = SecurityUtils::get_production_headers();
         assert!(!prod_headers.is_empty());
         assert!(prod_headers.iter().any(|(name, _)| *name == "Strict-Transport-Security"));

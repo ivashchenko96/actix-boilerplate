@@ -1,6 +1,6 @@
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
+    Error, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
 use std::future::{ready, Ready};
@@ -69,13 +69,11 @@ where
                 });
 
             // Add request ID to request headers
+            let request_header_value = actix_web::http::header::HeaderValue::from_str(&request_id)
+                .unwrap_or(actix_web::http::header::HeaderValue::from_static("invalid-request-id"));
             req.headers_mut().insert(
                 actix_web::http::header::HeaderName::from_static("x-request-id"),
-                actix_web::http::header::HeaderValue::from_str(&request_id)
-                    .unwrap_or_else(|_| {
-                        actix_web::http::header::HeaderValue::from_str(&Uuid::new_v4().to_string())
-                            .expect("Failed to create header value")
-                    }),
+                request_header_value,
             );
 
             // Store request ID in request extensions for easy access
@@ -85,10 +83,11 @@ where
             let mut res = service.call(req).await?;
 
             // Add request ID to response headers
+            let response_header_value = actix_web::http::header::HeaderValue::from_str(&request_id)
+                .unwrap_or(actix_web::http::header::HeaderValue::from_static("invalid-request-id"));
             res.headers_mut().insert(
                 actix_web::http::header::HeaderName::from_static("x-request-id"),
-                actix_web::http::header::HeaderValue::from_str(&request_id)
-                    .expect("Failed to create response header"),
+                response_header_value,
             );
 
             Ok(res)
@@ -226,8 +225,8 @@ mod tests {
         assert_ne!(response_id, "invalid-uuid");
     }
 
-    #[test]
-    fn test_request_id_wrapper() {
+    #[actix_web::test]
+    async fn test_request_id_wrapper() {
         let id = Uuid::new_v4().to_string();
         let request_id = RequestId(id.clone());
 

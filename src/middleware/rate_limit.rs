@@ -1,5 +1,6 @@
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    body::EitherBody,
     Error, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
@@ -15,7 +16,6 @@ use std::{
     net::IpAddr,
     rc::Rc,
     sync::Arc,
-    time::Duration,
     collections::HashMap,
 };
 
@@ -31,14 +31,18 @@ pub struct RateLimitMiddleware {
 }
 
 impl RateLimitMiddleware {
+    fn non_zero_or(value: u32, fallback: u32) -> NonZeroU32 {
+        NonZeroU32::new(value)
+            .or_else(|| NonZeroU32::new(fallback))
+            .unwrap_or(NonZeroU32::MIN)
+    }
+
     pub fn new(settings: &Settings) -> Self {
         let quota = Quota::per_minute(
-            NonZeroU32::new(settings.rate_limiting.requests_per_minute)
-                .unwrap_or(NonZeroU32::new(60).unwrap())
+            Self::non_zero_or(settings.rate_limiting.requests_per_minute, 60)
         )
         .allow_burst(
-            NonZeroU32::new(settings.rate_limiting.burst_size)
-                .unwrap_or(NonZeroU32::new(100).unwrap())
+            Self::non_zero_or(settings.rate_limiting.burst_size, 100)
         );
 
         let limiter = Arc::new(RateLimiter::direct(quota));
@@ -56,7 +60,7 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type Transform = RateLimitMiddlewareService<S>;
     type InitError = ();
@@ -83,7 +87,7 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
@@ -96,14 +100,20 @@ where
 
         Box::pin(async move {
             if !enabled {
-                return service.call(req).await;
+                return service
+                    .call(req)
+                    .await
+                    .map(ServiceResponse::map_into_left_body);
             }
 
             // Check rate limit
             match limiter.check() {
                 Ok(_) => {
                     // Rate limit not exceeded, continue with request
-                    service.call(req).await
+                    service
+                        .call(req)
+                        .await
+                        .map(ServiceResponse::map_into_left_body)
                 }
                 Err(_) => {
                     // Rate limit exceeded, return error
@@ -120,7 +130,7 @@ where
                         field: None,
                     };
 
-                    let response = ApiResponse::error(
+                    let response = ApiResponse::<()>::error(
                         vec![error],
                         "Rate limit exceeded".to_string(),
                         "en".to_string(), // Should use locale from request
@@ -131,7 +141,7 @@ where
                         .insert_header(("Retry-After", "60")) // Suggest retry after 60 seconds
                         .json(response);
 
-                    Ok(req.into_response(http_response))
+                    Ok(req.into_response(http_response.map_into_right_body()))
                 }
             }
         })
@@ -145,12 +155,18 @@ pub struct IpRateLimiter {
 }
 
 impl IpRateLimiter {
+    fn non_zero_or(value: u32, fallback: u32) -> NonZeroU32 {
+        NonZeroU32::new(value)
+            .or_else(|| NonZeroU32::new(fallback))
+            .unwrap_or(NonZeroU32::MIN)
+    }
+
     pub fn new(requests_per_minute: u32, burst_size: u32) -> Self {
         let quota = Quota::per_minute(
-            NonZeroU32::new(requests_per_minute).unwrap_or(NonZeroU32::new(60).unwrap())
+            Self::non_zero_or(requests_per_minute, 60)
         )
         .allow_burst(
-            NonZeroU32::new(burst_size).unwrap_or(NonZeroU32::new(100).unwrap())
+            Self::non_zero_or(burst_size, 100)
         );
 
         Self {
@@ -181,14 +197,7 @@ impl IpRateLimiter {
     /// Clean up old limiters (should be called periodically)
     pub async fn cleanup(&self) {
         let mut limiters = self.limiters.write().await;
-        
-        // Remove limiters that haven't been used recently
-        // This is a simple cleanup - in production you might want more sophisticated logic
-        let now = QuantaInstant::now();
-        limiters.retain(|_, limiter| {
-            // Keep limiter if it has been used in the last hour
-            limiter.check().is_err() || true // Simple heuristic
-        });
+        limiters.retain(|_, _| true);
         
         // Limit the number of stored limiters to prevent memory exhaustion
         if limiters.len() > 10000 {

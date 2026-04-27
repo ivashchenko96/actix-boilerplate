@@ -1,6 +1,7 @@
 pub mod loader;
 
 use fluent::{FluentBundle, FluentResource};
+use fluent_bundle::FluentArgs;
 use unic_langid::LanguageIdentifier;
 use std::collections::HashMap;
 use anyhow::Result;
@@ -9,14 +10,14 @@ use crate::config::Settings;
 
 /// i18n service for managing translations
 pub struct I18nService {
-    bundles: HashMap<String, FluentBundle<FluentResource>>,
+    resources: HashMap<String, String>,
     default_locale: String,
 }
 
 impl I18nService {
     pub fn new(settings: &Settings) -> Result<Self> {
         let mut service = Self {
-            bundles: HashMap::new(),
+            resources: HashMap::new(),
             default_locale: settings.i18n.default_locale.clone(),
         };
 
@@ -30,27 +31,38 @@ impl I18nService {
 
     /// Load translations for a specific locale
     pub fn load_locale(&mut self, locale: &str) -> Result<()> {
-        let lang_id: LanguageIdentifier = locale.parse()?;
-        let mut bundle = FluentBundle::new(vec![lang_id]);
-
-        // Load common translations
         let ftl_path = format!("locales/{}/common.ftl", locale);
         if let Ok(ftl_content) = std::fs::read_to_string(&ftl_path) {
-            let resource = FluentResource::try_new(ftl_content)
-                .map_err(|_| anyhow::anyhow!("Failed to parse FTL file for locale: {}", locale))?;
-            bundle.add_resource(resource)
-                .map_err(|_| anyhow::anyhow!("Failed to add resource for locale: {}", locale))?;
+            self.resources.insert(locale.to_string(), ftl_content);
         }
-
-        self.bundles.insert(locale.to_string(), bundle);
         Ok(())
     }
 
     /// Get a translated message
-    pub fn get_message(&self, locale: &str, key: &str, args: Option<&std::collections::HashMap<String, fluent::FluentValue>>) -> String {
-        let bundle = self.bundles.get(locale)
-            .or_else(|| self.bundles.get(&self.default_locale))
-            .unwrap(); // Should always have default locale
+    pub fn get_message(&self, locale: &str, key: &str, args: Option<&FluentArgs<'_>>) -> String {
+        let selected_locale = if self.resources.contains_key(locale) {
+            locale
+        } else {
+            &self.default_locale
+        };
+        let Some(ftl_content) = self
+            .resources
+            .get(selected_locale)
+        else {
+            return key.to_string();
+        };
+
+        let lang_id = selected_locale
+            .parse::<LanguageIdentifier>()
+            .unwrap_or_else(|_| LanguageIdentifier::default());
+        let mut bundle = FluentBundle::new(vec![lang_id]);
+        let resource = match FluentResource::try_new(ftl_content.clone()) {
+            Ok(resource) => resource,
+            Err(_) => return key.to_string(),
+        };
+        if bundle.add_resource(resource).is_err() {
+            return key.to_string();
+        }
 
         if let Some(message) = bundle.get_message(key) {
             if let Some(pattern) = message.value() {
@@ -65,6 +77,6 @@ impl I18nService {
 
     /// Get available locales
     pub fn get_locales(&self) -> Vec<String> {
-        self.bundles.keys().cloned().collect()
+        self.resources.keys().cloned().collect()
     }
 }

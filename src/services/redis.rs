@@ -1,6 +1,6 @@
 use fred::{
     prelude::*,
-    types::{ConnectHandle, RedisConfig},
+    types::{ConnectHandle, Expiration, RedisConfig},
 };
 use anyhow::Result;
 
@@ -13,7 +13,7 @@ pub struct RedisService {
 
 impl RedisService {
     /// Create new Redis service
-    pub async fn new(settings: &Settings) -> Result<Self> {
+    pub async fn new(_settings: &Settings) -> Result<Self> {
         let redis_url = std::env::var("REDIS_URL")
             .unwrap_or_else(|_| "redis://localhost:6379".to_string());
 
@@ -38,9 +38,19 @@ impl RedisService {
     /// Set a string value with expiration
     pub async fn setex<V>(&self, key: &str, value: V, seconds: u64) -> Result<()>
     where
-        V: Into<RedisValue>,
+        V: TryInto<RedisValue> + Send,
+        V::Error: Into<fred::error::RedisError> + Send,
     {
-        self.client.setex(key, seconds as i64, value).await?;
+        let _: () = self
+            .client
+            .set(
+                key,
+                value,
+                Some(Expiration::EX(seconds as i64)),
+                None,
+                false,
+            )
+            .await?;
         Ok(())
     }
 
@@ -70,7 +80,7 @@ impl RedisService {
 
     /// Ping Redis server
     pub async fn ping(&self) -> Result<String> {
-        let result: String = self.client.ping(None).await?;
+        let result: String = self.client.ping().await?;
         Ok(result)
     }
 

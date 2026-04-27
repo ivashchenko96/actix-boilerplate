@@ -1,6 +1,6 @@
 use async_nats::{Client, jetstream::Context};
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 
 use crate::config::Settings;
 
@@ -11,7 +11,7 @@ pub struct NatsService {
 }
 
 impl NatsService {
-    pub async fn new(settings: &Settings) -> Result<Self> {
+    pub async fn new(_settings: &Settings) -> Result<Self> {
         let nats_url = std::env::var("NATS_URL")
             .unwrap_or_else(|_| "nats://localhost:4222".to_string());
 
@@ -23,12 +23,12 @@ impl NatsService {
 
     pub async fn publish(&self, subject: &str, payload: impl Serialize) -> Result<()> {
         let data = serde_json::to_vec(&payload)?;
-        self.client.publish(subject, data.into()).await?;
+        self.client.publish(subject.to_string(), data.into()).await?;
         Ok(())
     }
 
     pub async fn subscribe(&self, subject: &str) -> Result<async_nats::Subscriber> {
-        let subscriber = self.client.subscribe(subject).await?;
+        let subscriber = self.client.subscribe(subject.to_string()).await?;
         Ok(subscriber)
     }
 

@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpServer, middleware as actix_middleware};
+use actix_web::{middleware::Condition, web, App, HttpServer, middleware as actix_middleware};
 use actix_web_prom::PrometheusMetricsBuilder;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -26,21 +26,15 @@ pub async fn create_app(context: AppContext) -> std::io::Result<()> {
     let workers = context.settings.server.workers;
 
     // Create metrics middleware if enabled
-    let prometheus = if context.settings.feature_flags.metrics {
-        Some(
-            PrometheusMetricsBuilder::new("actix_boilerplate")
-                .endpoint("/metrics")
-                .build()
-                .map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!("Failed to create Prometheus metrics: {}", e),
-                    )
-                })?,
-        )
-    } else {
-        None
-    };
+    let prometheus = PrometheusMetricsBuilder::new("actix_boilerplate")
+        .endpoint("/metrics")
+        .build()
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to create Prometheus metrics: {}", e),
+            )
+        })?;
 
     // Create module registry and register modules
     let mut module_registry = ModuleRegistry::new();
@@ -50,7 +44,9 @@ pub async fn create_app(context: AppContext) -> std::io::Result<()> {
 
     // Create and start cron scheduler if enabled
     let cron_registry = if context.settings.cron.enabled {
-        let mut cron_registry = CronRegistry::new();
+        let mut cron_registry = CronRegistry::new().await.map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::Other, format!("Cron init failed: {}", e))
+        })?;
         
         // Register cron jobs from modules
         for module in &module_registry.modules {
@@ -83,25 +79,21 @@ pub async fn create_app(context: AppContext) -> std::io::Result<()> {
             .wrap(cors_middleware(&context.settings))
             .wrap(RequestIdMiddleware)
             .wrap(LocaleMiddleware::new(Arc::clone(&context)))
-            .wrap(logger_middleware());
-
-        // Add Prometheus metrics if enabled
-        if let Some(prometheus) = prometheus {
-            app = app.wrap(prometheus);
-        }
+            .wrap(logger_middleware())
+            .wrap(Condition::new(
+                context.settings.feature_flags.metrics,
+                prometheus.clone(),
+            ));
 
         // Register module routes
         for module in &module_registry.modules {
             app = app.configure(|cfg| module.register_routes(cfg));
         }
 
-        // Add Swagger UI if enabled
-        if context.settings.feature_flags.swagger_ui {
-            app = app.service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-doc/openapi.json", ApiDoc::openapi()),
-            );
-        }
+        app = app.service(
+            SwaggerUi::new("/swagger-ui/{_:.*}")
+                .url("/api-doc/openapi.json", ApiDoc::openapi()),
+        );
 
         app
     })

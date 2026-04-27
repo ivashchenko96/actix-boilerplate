@@ -17,10 +17,8 @@ impl RootSpanBuilder for CustomRootSpanBuilder {
             .headers()
             .get("X-Request-ID")
             .and_then(|h| h.to_str().ok())
-            .unwrap_or_else(|| {
-                // Generate a new request ID if not present
-                &Uuid::new_v4().to_string()
-            });
+            .map(ToString::to_string)
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
 
         let user_agent = request
             .headers()
@@ -37,12 +35,15 @@ impl RootSpanBuilder for CustomRootSpanBuilder {
                     .headers()
                     .get("X-Real-IP")
                     .and_then(|h| h.to_str().ok())
-            });
+            })
+            .unwrap_or("unknown")
+            .to_string();
 
-        let remote_addr = request
-            .connection_info()
+        let connection_info = request.connection_info();
+        let remote_addr = connection_info
             .realip_remote_addr()
-            .unwrap_or("unknown");
+            .unwrap_or("unknown")
+            .to_string();
 
         tracing::info_span!(
             "HTTP request",
@@ -52,7 +53,7 @@ impl RootSpanBuilder for CustomRootSpanBuilder {
             request_id = %request_id,
             user_agent = %user_agent,
             remote_addr = %remote_addr,
-            forwarded_for = forwarded_for,
+            forwarded_for = %forwarded_for,
             status_code = tracing::field::Empty,
             response_time_ms = tracing::field::Empty,
         )

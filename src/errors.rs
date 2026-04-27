@@ -1,6 +1,5 @@
 use actix_web::{HttpResponse, ResponseError};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use uuid::Uuid;
 use validator::ValidationErrors;
 
@@ -26,7 +25,7 @@ pub enum AppError {
     Jwt(#[from] jsonwebtoken::errors::Error),
     
     #[error("Password hashing error: {0}")]
-    PasswordHash(#[from] argon2::password_hash::Error),
+    PasswordHash(String),
     
     #[error("Email error: {0}")]
     Email(#[from] lettre::error::Error),
@@ -138,7 +137,7 @@ impl ResponseError for AppError {
                     })
                     .collect();
 
-                return HttpResponse::BadRequest().json(ApiResponse::error(
+                return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
                     validation_errors,
                     "Validation failed".to_string(),
                     locale,
@@ -203,7 +202,7 @@ impl ResponseError for AppError {
             field: None,
         };
 
-        HttpResponse::build(status_code).json(ApiResponse::error(
+        HttpResponse::build(status_code).json(ApiResponse::<()>::error(
             vec![error],
             message,
             locale,
@@ -281,5 +280,11 @@ impl AppError {
         Self::ServiceUnavailable {
             service: service.to_string(),
         }
+    }
+}
+
+impl From<argon2::password_hash::Error> for AppError {
+    fn from(value: argon2::password_hash::Error) -> Self {
+        Self::PasswordHash(value.to_string())
     }
 }

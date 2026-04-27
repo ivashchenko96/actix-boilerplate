@@ -21,7 +21,7 @@ pub struct Locale {
 }
 
 impl Locale {
-    pub fn new(code: &str) -> Result<Self, unic_langid::parser::ParserError> {
+    pub fn new(code: &str) -> Result<Self, unic_langid::LanguageIdentifierError> {
         let language = code.parse::<LanguageIdentifier>()?;
         Ok(Self {
             language,
@@ -176,9 +176,9 @@ fn detect_locale(req: &ServiceRequest, context: &AppContext) -> Locale {
     }
 
     // 4. Fall back to default locale
-    Locale::new(default_locale).unwrap_or_else(|_| {
-        // If default locale is invalid, use "en" as ultimate fallback
-        Locale::new("en").expect("Failed to create fallback locale")
+    Locale::new(default_locale).unwrap_or_else(|_| Locale {
+        language: LanguageIdentifier::default(),
+        code: "en".to_string(),
     })
 }
 
@@ -194,8 +194,9 @@ pub fn get_locale(req: &ServiceRequest) -> Option<Locale> {
 
 /// Helper function to require locale from request extensions
 pub fn require_locale(req: &ServiceRequest) -> Locale {
-    get_locale(req).unwrap_or_else(|| {
-        Locale::new("en").expect("Failed to create fallback locale")
+    get_locale(req).unwrap_or_else(|| Locale {
+        language: LanguageIdentifier::default(),
+        code: "en".to_string(),
     })
 }
 

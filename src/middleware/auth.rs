@@ -103,9 +103,10 @@ where
 
         Box::pin(async move {
             // Try to extract token from Authorization header
-            let auth_result = extract_token_from_request(&req)
-                .and_then(|token| validate_token(&token, &context))
-                .await;
+            let auth_result = match extract_token_from_request(&req) {
+                Ok(token) => validate_token(&token, &context).await,
+                Err(err) => Err(err),
+            };
 
             match auth_result {
                 Ok(user) => {
@@ -141,7 +142,9 @@ fn extract_token_from_request(req: &ServiceRequest) -> AppResult<String> {
         return Err(AppError::authentication("Invalid Authorization header format"));
     }
 
-    let token = auth_str.strip_prefix("Bearer ").unwrap();
+    let token = auth_str
+        .strip_prefix("Bearer ")
+        .ok_or_else(|| AppError::authentication("Invalid Authorization header format"))?;
     if token.is_empty() {
         return Err(AppError::authentication("Empty token"));
     }
@@ -165,28 +168,26 @@ async fn validate_token(token: &str, context: &AppContext) -> AppResult<AuthUser
     let claims = token_data.claims;
 
     // Check if token is blacklisted
-    let is_blacklisted = sqlx::query_scalar(
+    let is_blacklisted = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM blacklisted_tokens WHERE jti = $1)"
     )
     .bind(claims.jti)
     .fetch_one(context.db())
     .await
-    .map_err(|e| AppError::Database(e))?
-    .unwrap_or(false);
+    .map_err(AppError::Database)?;
 
     if is_blacklisted {
         return Err(AppError::authentication("Token has been revoked"));
     }
 
     // Verify user still exists and is active
-    let user_exists: bool = sqlx::query_scalar(
+    let user_exists: bool = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND is_active = true)"
     )
     .bind(claims.sub)
     .fetch_one(context.db())
     .await
-    .map_err(|e| AppError::Database(e))?
-    .unwrap_or(false);
+    .map_err(AppError::Database)?;
 
     if !user_exists {
         return Err(AppError::authentication("User not found or inactive"));

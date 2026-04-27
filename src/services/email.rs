@@ -4,7 +4,6 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use anyhow::Result;
-use serde::Serialize;
 
 use crate::config::Settings;
 
@@ -15,7 +14,7 @@ pub struct EmailService {
 }
 
 impl EmailService {
-    pub fn new(settings: &Settings) -> Result<Self> {
+    pub fn new(_settings: &Settings) -> Result<Self> {
         let smtp_host = std::env::var("SMTP_HOST")
             .map_err(|_| anyhow::anyhow!("SMTP_HOST not set"))?;
         
@@ -57,36 +56,35 @@ impl EmailService {
     ) -> Result<()> {
         let to_mailbox: Mailbox = to.parse()?;
         
-        let mut message_builder = Message::builder()
-            .from(self.from_email.clone())
-            .to(to_mailbox)
-            .subject(subject);
-
-        if let Some(text) = text_body {
-            message_builder = message_builder
+        let message = if let Some(text) = text_body {
+            Message::builder()
+                .from(self.from_email.clone())
+                .to(to_mailbox)
+                .subject(subject)
                 .multipart(
                     lettre::message::MultiPart::alternative()
                         .singlepart(
                             lettre::message::SinglePart::builder()
                                 .header(ContentType::TEXT_PLAIN)
-                                .body(text.to_string())
+                                .body(text.to_string()),
                         )
                         .singlepart(
                             lettre::message::SinglePart::builder()
                                 .header(ContentType::TEXT_HTML)
-                                .body(html_body.to_string())
-                        )
-                )?;
+                                .body(html_body.to_string()),
+                        ),
+                )?
         } else {
-            message_builder = message_builder
+            Message::builder()
+                .from(self.from_email.clone())
+                .to(to_mailbox)
+                .subject(subject)
                 .singlepart(
                     lettre::message::SinglePart::builder()
                         .header(ContentType::TEXT_HTML)
-                        .body(html_body.to_string())
-                )?;
-        }
-
-        let message = message_builder;
+                        .body(html_body.to_string()),
+                )?
+        };
         self.transport.send(message).await?;
         
         Ok(())

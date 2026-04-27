@@ -1,6 +1,5 @@
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
-use uuid::Uuid;
 
 /// Database utilities and common operations
 pub struct Database {
@@ -106,11 +105,11 @@ impl Database {
     /// Execute a transaction
     pub async fn with_transaction<F, R, E>(&self, callback: F) -> Result<R, E>
     where
-        F: for<'a> FnOnce(&'a mut sqlx::Transaction<'a, sqlx::Postgres>) -> futures::future::BoxFuture<'a, Result<R, E>>,
+        F: FnOnce(&mut sqlx::Transaction<'_, sqlx::Postgres>) -> Result<R, E>,
         E: From<sqlx::Error>,
     {
         let mut tx = self.pool.begin().await?;
-        let result = callback(&mut tx).await?;
+        let result = callback(&mut tx)?;
         tx.commit().await?;
         Ok(result)
     }
