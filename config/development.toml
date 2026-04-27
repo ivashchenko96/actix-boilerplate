@@ -1,0 +1,34 @@
+[server]
+host = "localhost"
+port = 8000
+workers = 2
+
+[database]
+max_connections = 10
+min_connections = 2
+
+[redis]
+max_connections = 10
+
+[security]
+bcrypt_cost = 8  # Faster for development
+
+[logging]
+level = "debug"
+format = "pretty"
+
+[feature_flags]
+registration_enabled = true
+email_verification = false  # Disable for easier development
+password_reset = true
+swagger_ui = true
+metrics = true
+
+[cron]
+enabled = false  # Disable cron jobs in development
+
+[app]
+environment = "development"
+
+[rate_limiting]
+enabled = false  # Disable rate limiting in development

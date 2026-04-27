@@ -1,0 +1,70 @@
+[server]
+host = "0.0.0.0"
+port = 8000
+workers = 4
+shutdown_timeout = 30
+
+[database]
+max_connections = 30
+min_connections = 5
+connect_timeout = 10
+idle_timeout = 600
+max_lifetime = 1800
+
+[redis]
+max_connections = 20
+connect_timeout = 5
+idle_timeout = 300
+
+[jwt]
+access_expiration = 3600    # 1 hour
+refresh_expiration = 604800 # 7 days
+
+[cors]
+max_age = 3600
+
+[security]
+bcrypt_cost = 12
+max_login_attempts = 5
+lockout_duration = 900 # 15 minutes
+
+[email]
+timeout = 30
+
+[storage]
+upload_max_size = 10485760 # 10MB
+allowed_file_types = ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx"]
+
+[rate_limiting]
+enabled = true
+requests_per_minute = 60
+burst_size = 100
+
+[logging]
+level = "info"
+format = "json"
+
+[pagination]
+default_page_size = 20
+max_page_size = 100
+
+[i18n]
+default_locale = "en"
+supported_locales = ["en", "ar", "de"]
+fallback_locale = "en"
+
+[feature_flags]
+registration_enabled = true
+email_verification = true
+password_reset = true
+swagger_ui = true
+metrics = true
+
+[cron]
+enabled = true
+timezone = "UTC"
+
+[app]
+name = "Actix Boilerplate"
+version = "0.1.0"
+environment = "default"

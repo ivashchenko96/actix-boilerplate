@@ -1,0 +1,8 @@
+name: Deploy cPanel
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Use SSH deploy to upload binary and configure proxy on cPanel."
