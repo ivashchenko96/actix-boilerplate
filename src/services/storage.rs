@@ -1,6 +1,6 @@
-use aws_config::BehaviorVersion;
-use aws_sdk_s3::{Client, Config};
 use anyhow::Result;
+use aws_config::BehaviorVersion;
+use aws_sdk_s3::Client;
 use bytes::Bytes;
 
 use crate::config::Settings;
@@ -12,12 +12,12 @@ pub struct StorageService {
 }
 
 impl StorageService {
-    pub async fn new(settings: &Settings) -> Result<Self> {
+    pub async fn new(_settings: &Settings) -> Result<Self> {
         let config = aws_config::defaults(BehaviorVersion::latest()).load().await;
         let s3_client = Client::new(&config);
-        
-        let bucket_name = std::env::var("S3_BUCKET_NAME")
-            .unwrap_or_else(|_| "default-bucket".to_string());
+
+        let bucket_name =
+            std::env::var("S3_BUCKET_NAME").unwrap_or_else(|_| "default-bucket".to_string());
 
         Ok(Self {
             s3_client,
@@ -52,10 +52,11 @@ impl StorageService {
 
     pub async fn get_presigned_url(&self, key: &str, expires_in_secs: u64) -> Result<String> {
         let presigning_config = aws_sdk_s3::presigning::PresigningConfig::expires_in(
-            std::time::Duration::from_secs(expires_in_secs)
+            std::time::Duration::from_secs(expires_in_secs),
         )?;
 
-        let presigned_request = self.s3_client
+        let presigned_request = self
+            .s3_client
             .get_object()
             .bucket(&self.bucket_name)
             .key(key)

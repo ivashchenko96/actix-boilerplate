@@ -1,2 +1,2 @@
-pub mod user_events;
 pub mod auth_events;
+pub mod user_events;

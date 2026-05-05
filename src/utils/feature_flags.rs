@@ -8,11 +8,20 @@ pub struct FeatureFlagService {
 impl FeatureFlagService {
     pub fn new(settings: &Settings) -> Self {
         let mut flags = std::collections::HashMap::new();
-        
+
         // Load flags from settings
-        flags.insert("registration_enabled".to_string(), settings.feature_flags.registration_enabled);
-        flags.insert("email_verification".to_string(), settings.feature_flags.email_verification);
-        flags.insert("password_reset".to_string(), settings.feature_flags.password_reset);
+        flags.insert(
+            "registration_enabled".to_string(),
+            settings.feature_flags.registration_enabled,
+        );
+        flags.insert(
+            "email_verification".to_string(),
+            settings.feature_flags.email_verification,
+        );
+        flags.insert(
+            "password_reset".to_string(),
+            settings.feature_flags.password_reset,
+        );
         flags.insert("swagger_ui".to_string(), settings.feature_flags.swagger_ui);
         flags.insert("metrics".to_string(), settings.feature_flags.metrics);
 

@@ -1,7 +1,7 @@
 pub mod jobs;
 
-use tokio_cron_scheduler::{JobScheduler, Job};
 use anyhow::Result;
+use tokio_cron_scheduler::{Job, JobScheduler};
 
 /// Cron registry for managing scheduled jobs
 pub struct CronRegistry {

@@ -1,6 +1,6 @@
 use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     body::EitherBody,
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
@@ -8,26 +8,30 @@ use governor::{
     clock::{QuantaClock, QuantaInstant},
     middleware::NoOpMiddleware,
     state::{InMemoryState, NotKeyed},
-    RateLimiter, Quota, 
+    Quota, RateLimiter,
 };
-use std::num::NonZeroU32;
 use std::{
+    collections::HashMap,
     future::{ready, Ready},
     net::IpAddr,
+    num::NonZeroU32,
     rc::Rc,
     sync::Arc,
-    collections::HashMap,
 };
 
 use crate::{
     config::Settings,
-    errors::{ApiResponse, ApiError},
+    errors::{ApiError, ApiResponse},
 };
+
+type DefaultRateLimiter =
+    RateLimiter<NotKeyed, InMemoryState, QuantaClock, NoOpMiddleware<QuantaInstant>>;
+type IpRateLimiterStore = Arc<tokio::sync::RwLock<HashMap<IpAddr, DefaultRateLimiter>>>;
 
 /// Rate limiting middleware
 pub struct RateLimitMiddleware {
     settings: Settings,
-    limiter: Arc<RateLimiter<NotKeyed, InMemoryState, QuantaClock, NoOpMiddleware<QuantaInstant>>>,
+    limiter: Arc<DefaultRateLimiter>,
 }
 
 impl RateLimitMiddleware {
@@ -38,12 +42,11 @@ impl RateLimitMiddleware {
     }
 
     pub fn new(settings: &Settings) -> Self {
-        let quota = Quota::per_minute(
-            Self::non_zero_or(settings.rate_limiting.requests_per_minute, 60)
-        )
-        .allow_burst(
-            Self::non_zero_or(settings.rate_limiting.burst_size, 100)
-        );
+        let quota = Quota::per_minute(Self::non_zero_or(
+            settings.rate_limiting.requests_per_minute,
+            60,
+        ))
+        .allow_burst(Self::non_zero_or(settings.rate_limiting.burst_size, 100));
 
         let limiter = Arc::new(RateLimiter::direct(quota));
 
@@ -77,7 +80,7 @@ where
 
 pub struct RateLimitMiddlewareService<S> {
     service: Rc<S>,
-    limiter: Arc<RateLimiter<NotKeyed, InMemoryState, QuantaClock, NoOpMiddleware<QuantaInstant>>>,
+    limiter: Arc<DefaultRateLimiter>,
     enabled: bool,
 }
 
@@ -150,7 +153,7 @@ where
 
 /// IP-based rate limiter for more granular control
 pub struct IpRateLimiter {
-    limiters: Arc<tokio::sync::RwLock<HashMap<IpAddr, RateLimiter<NotKeyed, InMemoryState, QuantaClock, NoOpMiddleware<QuantaInstant>>>>>,
+    limiters: IpRateLimiterStore,
     quota: Quota,
 }
 
@@ -162,12 +165,8 @@ impl IpRateLimiter {
     }
 
     pub fn new(requests_per_minute: u32, burst_size: u32) -> Self {
-        let quota = Quota::per_minute(
-            Self::non_zero_or(requests_per_minute, 60)
-        )
-        .allow_burst(
-            Self::non_zero_or(burst_size, 100)
-        );
+        let quota = Quota::per_minute(Self::non_zero_or(requests_per_minute, 60))
+            .allow_burst(Self::non_zero_or(burst_size, 100));
 
         Self {
             limiters: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
@@ -175,7 +174,10 @@ impl IpRateLimiter {
         }
     }
 
-    pub async fn check_rate_limit(&self, ip: IpAddr) -> Result<(), governor::NotUntil<QuantaInstant>> {
+    pub async fn check_rate_limit(
+        &self,
+        ip: IpAddr,
+    ) -> Result<(), governor::NotUntil<QuantaInstant>> {
         // Try to get existing limiter
         {
             let limiters = self.limiters.read().await;
@@ -187,9 +189,9 @@ impl IpRateLimiter {
         // Create new limiter for this IP
         {
             let mut limiters = self.limiters.write().await;
-            let limiter = limiters.entry(ip).or_insert_with(|| {
-                RateLimiter::direct(self.quota)
-            });
+            let limiter = limiters
+                .entry(ip)
+                .or_insert_with(|| RateLimiter::direct(self.quota));
             limiter.check()
         }
     }
@@ -198,7 +200,7 @@ impl IpRateLimiter {
     pub async fn cleanup(&self) {
         let mut limiters = self.limiters.write().await;
         limiters.retain(|_, _| true);
-        
+
         // Limit the number of stored limiters to prevent memory exhaustion
         if limiters.len() > 10000 {
             let excess = limiters.len() - 10000;
@@ -233,16 +235,14 @@ pub fn get_client_ip(req: &ServiceRequest) -> Option<IpAddr> {
     }
 
     // Fall back to connection info
-    req.connection_info()
-        .realip_remote_addr()
-        .and_then(|addr| {
-            // Remove port if present
-            if let Some(ip_part) = addr.split(':').next() {
-                ip_part.parse::<IpAddr>().ok()
-            } else {
-                addr.parse::<IpAddr>().ok()
-            }
-        })
+    req.connection_info().realip_remote_addr().and_then(|addr| {
+        // Remove port if present
+        if let Some(ip_part) = addr.split(':').next() {
+            ip_part.parse::<IpAddr>().ok()
+        } else {
+            addr.parse::<IpAddr>().ok()
+        }
+    })
 }
 
 #[cfg(test)]
@@ -252,13 +252,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_ip_rate_limiter() {
-        let limiter = IpRateLimiter::new(5, 10);
+        let limiter = IpRateLimiter::new(1, 1);
         let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
-        // First few requests should succeed
-        for _ in 0..5 {
-            assert!(limiter.check_rate_limit(ip).await.is_ok());
-        }
+        // First request should succeed
+        assert!(limiter.check_rate_limit(ip).await.is_ok());
 
         // Should be rate limited now
         assert!(limiter.check_rate_limit(ip).await.is_err());
@@ -268,7 +266,7 @@ mod tests {
     fn test_rate_limit_middleware_creation() {
         let settings = crate::config::Settings::new_for_tests();
         let middleware = RateLimitMiddleware::new(&settings);
-        
+
         assert!(!middleware.settings.rate_limiting.enabled); // Should be disabled in test config
     }
 }

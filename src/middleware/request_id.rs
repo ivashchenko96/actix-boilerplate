@@ -70,7 +70,9 @@ where
 
             // Add request ID to request headers
             let request_header_value = actix_web::http::header::HeaderValue::from_str(&request_id)
-                .unwrap_or(actix_web::http::header::HeaderValue::from_static("invalid-request-id"));
+                .unwrap_or(actix_web::http::header::HeaderValue::from_static(
+                    "invalid-request-id",
+                ));
             req.headers_mut().insert(
                 actix_web::http::header::HeaderName::from_static("x-request-id"),
                 request_header_value,
@@ -84,7 +86,9 @@ where
 
             // Add request ID to response headers
             let response_header_value = actix_web::http::header::HeaderValue::from_str(&request_id)
-                .unwrap_or(actix_web::http::header::HeaderValue::from_static("invalid-request-id"));
+                .unwrap_or(actix_web::http::header::HeaderValue::from_static(
+                    "invalid-request-id",
+                ));
             res.headers_mut().insert(
                 actix_web::http::header::HeaderName::from_static("x-request-id"),
                 response_header_value,
@@ -155,18 +159,19 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(RequestIdMiddleware)
-                .route("/", web::get().to(test_handler))
-        ).await;
+                .route("/", web::get().to(test_handler)),
+        )
+        .await;
 
         let req = test::TestRequest::get().uri("/").to_request();
         let resp = test::call_service(&app, req).await;
 
         // Check that response has X-Request-ID header
         assert!(resp.headers().contains_key("x-request-id"));
-        
+
         let request_id = resp.headers().get("x-request-id").unwrap();
         let request_id_str = request_id.to_str().unwrap();
-        
+
         // Verify it's a valid UUID
         assert!(Uuid::parse_str(request_id_str).is_ok());
     }
@@ -176,8 +181,9 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(RequestIdMiddleware)
-                .route("/", web::get().to(test_handler))
-        ).await;
+                .route("/", web::get().to(test_handler)),
+        )
+        .await;
 
         let existing_id = Uuid::new_v4().to_string();
         let req = test::TestRequest::get()
@@ -203,8 +209,9 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(RequestIdMiddleware)
-                .route("/", web::get().to(test_handler))
-        ).await;
+                .route("/", web::get().to(test_handler)),
+        )
+        .await;
 
         let req = test::TestRequest::get()
             .uri("/")

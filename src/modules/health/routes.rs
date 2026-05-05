@@ -1,8 +1,8 @@
 use actix_web::{web, HttpResponse, Result};
 use std::sync::Arc;
 
-use crate::context::AppContext;
 use super::controller;
+use crate::context::AppContext;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.route("", web::get().to(health_check))
@@ -19,9 +19,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         (status = 500, description = "Health check failed")
     )
 )]
-pub async fn health_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn health_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     controller::health_check(ctx).await
 }
 
@@ -34,9 +32,7 @@ pub async fn health_check(
         (status = 500, description = "Database is unhealthy")
     )
 )]
-pub async fn database_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn database_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     controller::database_check(ctx).await
 }
 
@@ -49,8 +45,6 @@ pub async fn database_check(
         (status = 500, description = "Redis is unhealthy")
     )
 )]
-pub async fn redis_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn redis_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     controller::redis_check(ctx).await
 }

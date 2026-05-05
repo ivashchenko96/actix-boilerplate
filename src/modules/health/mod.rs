@@ -1,11 +1,11 @@
-pub mod routes;
 pub mod controller;
+pub mod routes;
 
 use actix_web::web;
 
 use crate::{
-    modules::registry::{AppModule, PermissionRegistry, OpenApiRegistry},
     cron::CronRegistry,
+    modules::registry::{AppModule, OpenApiRegistry, PermissionRegistry},
 };
 
 pub struct HealthModule;
@@ -16,10 +16,7 @@ impl AppModule for HealthModule {
     }
 
     fn register_routes(&self, cfg: &mut web::ServiceConfig) {
-        cfg.service(
-            web::scope("/health")
-                .configure(routes::configure)
-        );
+        cfg.service(web::scope("/health").configure(routes::configure));
     }
 
     fn register_jobs(&self, _registry: &mut CronRegistry) {

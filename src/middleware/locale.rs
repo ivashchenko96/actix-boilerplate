@@ -8,10 +8,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use unic_langid::LanguageIdentifier;
 
-use crate::{
-    context::AppContext,
-    middleware::auth::get_auth_user,
-};
+use crate::{context::AppContext, middleware::auth::get_auth_user};
 
 /// Locale information extracted from request
 #[derive(Debug, Clone)]
@@ -88,7 +85,7 @@ where
 
         Box::pin(async move {
             let locale = detect_locale(&req, &context);
-            
+
             // Store locale in request extensions
             req.extensions_mut().insert(locale);
 
@@ -107,16 +104,14 @@ fn detect_locale(req: &ServiceRequest, context: &AppContext) -> Locale {
     let default_locale = &context.settings.i18n.default_locale;
 
     // 1. Check query parameter
-    if let Some(lang) = req.query_string().split('&')
-        .find_map(|param| {
-            let mut parts = param.split('=');
-            if parts.next() == Some("lang") {
-                parts.next()
-            } else {
-                None
-            }
-        })
-    {
+    if let Some(lang) = req.query_string().split('&').find_map(|param| {
+        let mut parts = param.split('=');
+        if parts.next() == Some("lang") {
+            parts.next()
+        } else {
+            None
+        }
+    }) {
         if is_supported_locale(lang, supported_locales) {
             if let Ok(locale) = Locale::new(lang) {
                 return locale;
@@ -184,7 +179,9 @@ fn detect_locale(req: &ServiceRequest, context: &AppContext) -> Locale {
 
 /// Check if a locale is in the supported locales list
 fn is_supported_locale(locale: &str, supported_locales: &[String]) -> bool {
-    supported_locales.iter().any(|supported| supported == locale)
+    supported_locales
+        .iter()
+        .any(|supported| supported == locale)
 }
 
 /// Helper function to get locale from request extensions
@@ -217,7 +214,7 @@ mod tests {
     #[test]
     fn test_is_supported_locale() {
         let supported = vec!["en".to_string(), "de".to_string(), "ar".to_string()];
-        
+
         assert!(is_supported_locale("en", &supported));
         assert!(is_supported_locale("de", &supported));
         assert!(is_supported_locale("ar", &supported));

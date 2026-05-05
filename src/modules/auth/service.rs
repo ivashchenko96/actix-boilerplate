@@ -77,7 +77,10 @@ impl AuthService {
         let mut hasher = Sha256::new();
         hasher.update(refresh_raw.as_bytes());
         let refresh_hash = hex::encode(hasher.finalize());
-        let _ = self.repository.store_refresh_token(user_id, &refresh_hash).await?;
+        let _ = self
+            .repository
+            .store_refresh_token(user_id, &refresh_hash)
+            .await?;
 
         Ok(AuthResponse {
             access_token,

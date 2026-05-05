@@ -18,7 +18,9 @@ pub async fn login(
     ctx: web::Data<Arc<AppContext>>,
     payload: web::Json<LoginRequest>,
 ) -> Result<HttpResponse> {
-    payload.validate().map_err(actix_web::error::ErrorBadRequest)?;
+    payload
+        .validate()
+        .map_err(actix_web::error::ErrorBadRequest)?;
     let service = AuthService::new(AuthRepository::new(ctx.db.clone()));
     let data = service
         .login(payload.into_inner())
@@ -47,7 +49,9 @@ pub async fn register(
     ctx: web::Data<Arc<AppContext>>,
     payload: web::Json<RegisterRequest>,
 ) -> Result<HttpResponse> {
-    payload.validate().map_err(actix_web::error::ErrorBadRequest)?;
+    payload
+        .validate()
+        .map_err(actix_web::error::ErrorBadRequest)?;
     let service = AuthService::new(AuthRepository::new(ctx.db.clone()));
     let data = service
         .register(payload.into_inner())
@@ -63,7 +67,9 @@ pub async fn register(
 
 /// Refresh token endpoint handler.
 pub async fn refresh_token(payload: web::Json<RefreshRequest>) -> Result<HttpResponse> {
-    payload.validate().map_err(actix_web::error::ErrorBadRequest)?;
+    payload
+        .validate()
+        .map_err(actix_web::error::ErrorBadRequest)?;
     Ok(HttpResponse::Ok().json(ApiResponse::success(
         serde_json::json!({ "refresh_token": payload.refresh_token }),
         "Refresh accepted".to_string(),

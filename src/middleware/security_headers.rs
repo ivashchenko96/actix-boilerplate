@@ -15,12 +15,11 @@ pub struct SecurityHeadersMiddleware {
 }
 
 impl SecurityHeadersMiddleware {
-    pub fn new(settings: &Settings) -> Self {
+    pub fn new(_settings: &Settings) -> Self {
         let csp_policy = std::env::var("CSP_POLICY")
             .unwrap_or_else(|_| "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'".to_string());
-        
-        let hsts_max_age = std::env::var("HSTS_MAX_AGE")
-            .unwrap_or_else(|_| "31536000".to_string());
+
+        let hsts_max_age = std::env::var("HSTS_MAX_AGE").unwrap_or_else(|_| "31536000".to_string());
 
         Self {
             csp_policy,
@@ -88,7 +87,9 @@ where
             }
 
             // HTTP Strict Transport Security (HSTS)
-            if let Ok(header_value) = actix_web::http::header::HeaderValue::from_str(&format!("max-age={}", hsts_max_age)) {
+            if let Ok(header_value) =
+                actix_web::http::header::HeaderValue::from_str(&format!("max-age={}", hsts_max_age))
+            {
                 headers.insert(
                     actix_web::http::header::HeaderName::from_static("strict-transport-security"),
                     header_value,
@@ -116,7 +117,9 @@ where
             // Referrer Policy
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("referrer-policy"),
-                actix_web::http::header::HeaderValue::from_static("strict-origin-when-cross-origin"),
+                actix_web::http::header::HeaderValue::from_static(
+                    "strict-origin-when-cross-origin",
+                ),
             );
 
             // Permissions Policy (Feature Policy)
@@ -162,7 +165,7 @@ impl SecurityUtils {
     pub fn generate_nonce() -> String {
         use base64::Engine;
         use rand::RngCore;
-        
+
         let mut nonce_bytes = [0u8; 16];
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
         base64::engine::general_purpose::STANDARD.encode(nonce_bytes)
@@ -180,13 +183,26 @@ impl SecurityUtils {
     pub fn is_valid_csp(csp: &str) -> bool {
         // Basic validation - check for common CSP directives
         let valid_directives = [
-            "default-src", "script-src", "style-src", "img-src", "font-src",
-            "connect-src", "frame-src", "frame-ancestors", "object-src", "media-src",
-            "worker-src", "manifest-src", "base-uri", "form-action"
+            "default-src",
+            "script-src",
+            "style-src",
+            "img-src",
+            "font-src",
+            "connect-src",
+            "frame-src",
+            "frame-ancestors",
+            "object-src",
+            "media-src",
+            "worker-src",
+            "manifest-src",
+            "base-uri",
+            "form-action",
         ];
 
         // Check if CSP contains at least one valid directive
-        valid_directives.iter().any(|directive| csp.contains(directive))
+        valid_directives
+            .iter()
+            .any(|directive| csp.contains(directive))
     }
 
     /// Get recommended security headers for different environments
@@ -228,8 +244,9 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(middleware)
-                .route("/", web::get().to(test_handler))
-        ).await;
+                .route("/", web::get().to(test_handler)),
+        )
+        .await;
 
         let req = test::TestRequest::get().uri("/").to_request();
         let resp = test::call_service(&app, req).await;
@@ -258,7 +275,9 @@ mod tests {
 
         // Test CSP validation
         assert!(SecurityUtils::is_valid_csp("default-src 'self'"));
-        assert!(SecurityUtils::is_valid_csp("script-src 'self' 'unsafe-inline'"));
+        assert!(SecurityUtils::is_valid_csp(
+            "script-src 'self' 'unsafe-inline'"
+        ));
         assert!(!SecurityUtils::is_valid_csp("invalid csp policy"));
     }
 
@@ -266,10 +285,14 @@ mod tests {
     async fn test_recommended_headers() {
         let prod_headers = SecurityUtils::get_production_headers();
         assert!(!prod_headers.is_empty());
-        assert!(prod_headers.iter().any(|(name, _)| *name == "Strict-Transport-Security"));
+        assert!(prod_headers
+            .iter()
+            .any(|(name, _)| *name == "Strict-Transport-Security"));
 
         let dev_headers = SecurityUtils::get_development_headers();
         assert!(!dev_headers.is_empty());
-        assert!(dev_headers.iter().any(|(name, _)| *name == "Content-Security-Policy"));
+        assert!(dev_headers
+            .iter()
+            .any(|(name, _)| *name == "Content-Security-Policy"));
     }
 }

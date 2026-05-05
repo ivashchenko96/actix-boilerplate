@@ -127,7 +127,7 @@ impl Settings {
     /// Load configuration from files and environment variables
     pub fn new() -> Result<Self, ConfigError> {
         let environment = env::var("ENVIRONMENT").unwrap_or_else(|_| "development".to_string());
-        
+
         let mut builder = Config::builder()
             // Load default configuration
             .add_source(File::with_name("config/default").required(false))

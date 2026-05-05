@@ -16,7 +16,7 @@ impl Database {
         let row = sqlx::query("SELECT 1 as health")
             .fetch_one(&self.pool)
             .await?;
-        
+
         let health: i32 = row.get("health");
         Ok(health == 1)
     }
@@ -48,28 +48,25 @@ impl Database {
         let mut tx = self.pool.begin().await?;
 
         // Delete expired refresh tokens
-        let refresh_tokens_deleted = sqlx::query(
-            "DELETE FROM refresh_tokens WHERE expires_at < NOW()"
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let refresh_tokens_deleted =
+            sqlx::query("DELETE FROM refresh_tokens WHERE expires_at < NOW()")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
 
         // Delete expired blacklisted tokens
-        let blacklisted_tokens_deleted = sqlx::query(
-            "DELETE FROM blacklisted_tokens WHERE expires_at < NOW()"
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let blacklisted_tokens_deleted =
+            sqlx::query("DELETE FROM blacklisted_tokens WHERE expires_at < NOW()")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
 
         // Delete old audit logs (older than 1 year)
-        let audit_logs_deleted = sqlx::query(
-            "DELETE FROM audit_logs WHERE timestamp < NOW() - INTERVAL '1 year'"
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let audit_logs_deleted =
+            sqlx::query("DELETE FROM audit_logs WHERE timestamp < NOW() - INTERVAL '1 year'")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
 
         // Delete old cron job logs (keep only last 1000 per job)
         let cron_logs_deleted = sqlx::query(
@@ -133,10 +130,10 @@ pub struct CleanupResult {
 
 impl CleanupResult {
     pub fn total_deleted(&self) -> u64 {
-        self.refresh_tokens_deleted + 
-        self.blacklisted_tokens_deleted + 
-        self.audit_logs_deleted + 
-        self.cron_logs_deleted
+        self.refresh_tokens_deleted
+            + self.blacklisted_tokens_deleted
+            + self.audit_logs_deleted
+            + self.cron_logs_deleted
     }
 }
 
@@ -160,7 +157,12 @@ impl QueryBuilder {
         }
     }
 
-    pub fn add_condition(mut self, condition: &str, param_name: &str, value: serde_json::Value) -> Self {
+    pub fn add_condition(
+        mut self,
+        condition: &str,
+        param_name: &str,
+        value: serde_json::Value,
+    ) -> Self {
         self.conditions.push(condition.to_string());
         self.params.insert(param_name.to_string(), value);
         self
@@ -226,13 +228,20 @@ mod tests {
     #[test]
     fn test_query_builder() {
         let builder = QueryBuilder::new()
-            .add_condition("name = $1", "name", serde_json::Value::String("test".to_string()))
+            .add_condition(
+                "name = $1",
+                "name",
+                serde_json::Value::String("test".to_string()),
+            )
             .add_condition("age > $2", "age", serde_json::Value::Number(18.into()))
             .order_by("created_at", "DESC")
             .limit(10)
             .offset(0);
 
-        assert_eq!(builder.build_where_clause(), " WHERE name = $1 AND age > $2");
+        assert_eq!(
+            builder.build_where_clause(),
+            " WHERE name = $1 AND age > $2"
+        );
         assert_eq!(builder.build_order_clause(), " ORDER BY created_at DESC");
         assert_eq!(builder.build_limit_clause(), " LIMIT 10 OFFSET 0");
         assert_eq!(builder.params().len(), 2);

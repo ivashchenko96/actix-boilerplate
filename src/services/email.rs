@@ -1,9 +1,9 @@
+use anyhow::Result;
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::{authentication::Credentials, PoolConfig},
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use anyhow::Result;
 
 use crate::config::Settings;
 
@@ -15,21 +15,21 @@ pub struct EmailService {
 
 impl EmailService {
     pub fn new(_settings: &Settings) -> Result<Self> {
-        let smtp_host = std::env::var("SMTP_HOST")
-            .map_err(|_| anyhow::anyhow!("SMTP_HOST not set"))?;
-        
+        let smtp_host =
+            std::env::var("SMTP_HOST").map_err(|_| anyhow::anyhow!("SMTP_HOST not set"))?;
+
         let smtp_port = std::env::var("SMTP_PORT")
             .unwrap_or_else(|_| "587".to_string())
             .parse::<u16>()?;
-        
-        let smtp_username = std::env::var("SMTP_USERNAME")
-            .map_err(|_| anyhow::anyhow!("SMTP_USERNAME not set"))?;
-        
-        let smtp_password = std::env::var("SMTP_PASSWORD")
-            .map_err(|_| anyhow::anyhow!("SMTP_PASSWORD not set"))?;
-        
-        let from_email_str = std::env::var("FROM_EMAIL")
-            .map_err(|_| anyhow::anyhow!("FROM_EMAIL not set"))?;
+
+        let smtp_username =
+            std::env::var("SMTP_USERNAME").map_err(|_| anyhow::anyhow!("SMTP_USERNAME not set"))?;
+
+        let smtp_password =
+            std::env::var("SMTP_PASSWORD").map_err(|_| anyhow::anyhow!("SMTP_PASSWORD not set"))?;
+
+        let from_email_str =
+            std::env::var("FROM_EMAIL").map_err(|_| anyhow::anyhow!("FROM_EMAIL not set"))?;
 
         let credentials = Credentials::new(smtp_username, smtp_password);
 
@@ -55,7 +55,7 @@ impl EmailService {
         text_body: Option<&str>,
     ) -> Result<()> {
         let to_mailbox: Mailbox = to.parse()?;
-        
+
         let message = if let Some(text) = text_body {
             Message::builder()
                 .from(self.from_email.clone())
@@ -86,7 +86,7 @@ impl EmailService {
                 )?
         };
         self.transport.send(message).await?;
-        
+
         Ok(())
     }
 
@@ -111,7 +111,7 @@ impl EmailService {
     pub async fn send_password_reset_email(&self, to: &str, reset_token: &str) -> Result<()> {
         let subject = "Password Reset Request";
         let reset_url = format!("https://yourapp.com/reset-password?token={}", reset_token);
-        
+
         let html_body = format!(
             r#"
             <html>
@@ -132,8 +132,11 @@ impl EmailService {
 
     pub async fn send_email_verification(&self, to: &str, verification_token: &str) -> Result<()> {
         let subject = "Verify your email address";
-        let verification_url = format!("https://yourapp.com/verify-email?token={}", verification_token);
-        
+        let verification_url = format!(
+            "https://yourapp.com/verify-email?token={}",
+            verification_token
+        );
+
         let html_body = format!(
             r#"
             <html>

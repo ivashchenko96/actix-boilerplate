@@ -3,15 +3,15 @@ use actix_web::{
     Error,
 };
 use futures_util::future::LocalBoxFuture;
+use sqlx::Row;
 use std::future::{ready, Ready};
 use std::rc::Rc;
 use std::sync::Arc;
-use sqlx::Row;
 
 use crate::{
     context::AppContext,
-    middleware::auth::{get_auth_user, AuthUser},
     errors::{AppError, AppResult},
+    middleware::auth::{get_auth_user, AuthUser},
 };
 
 /// Role-based access control middleware
@@ -32,7 +32,10 @@ impl RoleMiddleware {
     /// Create middleware that requires any of the specified roles
     pub fn require_any_role(roles: Vec<String>, context: Arc<AppContext>) -> Self {
         // Convert roles to permissions (assuming role-based permissions)
-        let permissions = roles.into_iter().map(|role| format!("role:{}", role)).collect();
+        let permissions = roles
+            .into_iter()
+            .map(|role| format!("role:{}", role))
+            .collect();
         Self {
             required_permissions: permissions,
             context,
@@ -94,16 +97,18 @@ where
 
         Box::pin(async move {
             // Get authenticated user
-            let auth_user = get_auth_user(&req)
-                .ok_or_else(|| AppError::authentication("Authentication required for role check"))?;
+            let auth_user = get_auth_user(&req).ok_or_else(|| {
+                AppError::authentication("Authentication required for role check")
+            })?;
 
             // Check permissions
-            let has_permission = check_user_permissions(&auth_user, &required_permissions, &context).await?;
+            let has_permission =
+                check_user_permissions(&auth_user, &required_permissions, &context).await?;
 
             if !has_permission {
-                return Err(actix_web::error::ErrorForbidden(
-                    AppError::authorization("Insufficient permissions")
-                ));
+                return Err(actix_web::error::ErrorForbidden(AppError::authorization(
+                    "Insufficient permissions",
+                )));
             }
 
             service.call(req).await
@@ -147,7 +152,7 @@ async fn get_user_permissions(user: &AuthUser, context: &AppContext) -> AppResul
         JOIN roles r ON ur.role_id = r.id
         WHERE ur.user_id = $1 
         AND (ur.expires_at IS NULL OR ur.expires_at > NOW())
-        "#
+        "#,
     )
     .bind(user.id)
     .fetch_all(context.db())
@@ -203,7 +208,7 @@ pub mod permissions {
 
     // Admin permissions
     pub const ADMIN_ALL: &str = "*";
-    
+
     // System permissions
     pub const SYSTEM_HEALTH: &str = "system:health";
     pub const SYSTEM_METRICS: &str = "system:metrics";
@@ -235,7 +240,10 @@ impl RoleMiddleware {
 
     /// Require moderator or admin role
     pub fn require_moderator(context: Arc<AppContext>) -> Self {
-        Self::require_any_role(vec![roles::MODERATOR.to_string(), roles::ADMIN.to_string()], context)
+        Self::require_any_role(
+            vec![roles::MODERATOR.to_string(), roles::ADMIN.to_string()],
+            context,
+        )
     }
 }
 
