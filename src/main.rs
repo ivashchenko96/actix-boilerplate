@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use dotenvy::dotenv;
 use std::env;
 use tracing::{error, info};
@@ -5,17 +7,17 @@ use tracing::{error, info};
 mod app;
 mod config;
 mod context;
+mod cron;
 mod db;
 mod errors;
+mod events;
+mod i18n;
 mod middleware;
 mod modules;
-mod services;
-mod events;
-mod workers;
-mod cron;
-mod i18n;
 mod openapi;
+mod services;
 mod utils;
+mod workers;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -65,11 +67,10 @@ fn init_logging() {
     let environment = env::var("ENVIRONMENT").unwrap_or_else(|_| "development".to_string());
     let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(log_level)),
-        );
+    let subscriber = tracing_subscriber::fmt().with_env_filter(
+        tracing_subscriber::EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(log_level)),
+    );
 
     if environment == "production" {
         subscriber.json().init();

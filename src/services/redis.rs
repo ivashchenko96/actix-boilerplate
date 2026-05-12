@@ -1,8 +1,8 @@
+use anyhow::Result;
 use fred::{
     prelude::*,
     types::{ConnectHandle, Expiration, RedisConfig},
 };
-use anyhow::Result;
 
 use crate::config::Settings;
 
@@ -14,12 +14,12 @@ pub struct RedisService {
 impl RedisService {
     /// Create new Redis service
     pub async fn new(_settings: &Settings) -> Result<Self> {
-        let redis_url = std::env::var("REDIS_URL")
-            .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
 
         let config = RedisConfig::from_url(&redis_url)?;
         let client = RedisClient::new(config, None, None, None);
-        
+
         let _handle: ConnectHandle = client.connect();
         client.wait_for_connect().await?;
 

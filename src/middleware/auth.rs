@@ -3,12 +3,12 @@ use actix_web::{
     Error, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use serde::{Deserialize, Serialize};
 use std::future::{ready, Ready};
 use std::rc::Rc;
 use std::sync::Arc;
 use uuid::Uuid;
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     context::AppContext,
@@ -139,7 +139,9 @@ fn extract_token_from_request(req: &ServiceRequest) -> AppResult<String> {
         .map_err(|_| AppError::authentication("Invalid Authorization header format"))?;
 
     if !auth_str.starts_with("Bearer ") {
-        return Err(AppError::authentication("Invalid Authorization header format"));
+        return Err(AppError::authentication(
+            "Invalid Authorization header format",
+        ));
     }
 
     let token = auth_str
@@ -155,8 +157,8 @@ fn extract_token_from_request(req: &ServiceRequest) -> AppResult<String> {
 /// Validate JWT token and extract user information
 async fn validate_token(token: &str, context: &AppContext) -> AppResult<AuthUser> {
     // Get JWT secret from environment
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .map_err(|_| AppError::internal("JWT_SECRET not configured"))?;
+    let jwt_secret =
+        std::env::var("JWT_SECRET").map_err(|_| AppError::internal("JWT_SECRET not configured"))?;
 
     // Decode and validate token
     let token_data = decode::<Claims>(
@@ -169,7 +171,7 @@ async fn validate_token(token: &str, context: &AppContext) -> AppResult<AuthUser
 
     // Check if token is blacklisted
     let is_blacklisted = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM blacklisted_tokens WHERE jti = $1)"
+        "SELECT EXISTS(SELECT 1 FROM blacklisted_tokens WHERE jti = $1)",
     )
     .bind(claims.jti)
     .fetch_one(context.db())
@@ -182,7 +184,7 @@ async fn validate_token(token: &str, context: &AppContext) -> AppResult<AuthUser
 
     // Verify user still exists and is active
     let user_exists: bool = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND is_active = true)"
+        "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND is_active = true)",
     )
     .bind(claims.sub)
     .fetch_one(context.db())

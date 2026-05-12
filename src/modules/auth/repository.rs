@@ -71,10 +71,12 @@ impl AuthRepository {
 
     /// Revoke refresh token by jti.
     pub async fn revoke_refresh_token(&self, jti: Uuid) -> AppResult<()> {
-        sqlx::query("UPDATE refresh_tokens SET is_revoked = true, revoked_at = NOW() WHERE jti = $1")
-            .bind(jti)
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "UPDATE refresh_tokens SET is_revoked = true, revoked_at = NOW() WHERE jti = $1",
+        )
+        .bind(jti)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 }

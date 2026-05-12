@@ -1,5 +1,5 @@
-use actix_web::web;
 use super::controller;
+use actix_web::web;
 
 /// Register auth routes.
 pub fn configure(cfg: &mut web::ServiceConfig) {

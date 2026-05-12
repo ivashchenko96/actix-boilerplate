@@ -8,52 +8,52 @@ use validator::ValidationErrors;
 pub enum AppError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    
+
     #[error("Redis error: {0}")]
     Redis(#[from] fred::error::RedisError),
-    
+
     #[error("Validation error: {0}")]
     Validation(#[from] ValidationErrors),
-    
+
     #[error("Authentication error: {message}")]
     Authentication { message: String },
-    
+
     #[error("Authorization error: {message}")]
     Authorization { message: String },
-    
+
     #[error("JWT error: {0}")]
     Jwt(#[from] jsonwebtoken::errors::Error),
-    
+
     #[error("Password hashing error: {0}")]
     PasswordHash(String),
-    
+
     #[error("Email error: {0}")]
     Email(#[from] lettre::error::Error),
-    
+
     #[error("Storage error: {0}")]
     Storage(String),
-    
+
     #[error("External service error: {service}: {message}")]
     ExternalService { service: String, message: String },
-    
+
     #[error("Rate limit exceeded")]
     RateLimit,
-    
+
     #[error("Not found: {resource}")]
     NotFound { resource: String },
-    
+
     #[error("Conflict: {message}")]
     Conflict { message: String },
-    
+
     #[error("Bad request: {message}")]
     BadRequest { message: String },
-    
+
     #[error("Internal server error: {message}")]
     Internal { message: String },
-    
+
     #[error("Feature not enabled: {feature}")]
     FeatureNotEnabled { feature: String },
-    
+
     #[error("Service unavailable: {service}")]
     ServiceUnavailable { service: String },
 }
@@ -121,7 +121,7 @@ impl ResponseError for AppError {
             ),
             AppError::Redis(_) => (
                 actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "REDIS_ERROR", 
+                "REDIS_ERROR",
                 "A cache error occurred".to_string(),
             ),
             AppError::Validation(errors) => {
@@ -131,7 +131,11 @@ impl ResponseError for AppError {
                     .flat_map(|(field, field_errors)| {
                         field_errors.iter().map(move |error| ApiError {
                             code: error.code.to_string(),
-                            message: error.message.as_deref().unwrap_or("Validation error").to_string(),
+                            message: error
+                                .message
+                                .as_deref()
+                                .unwrap_or("Validation error")
+                                .to_string(),
                             field: Some(field.to_string()),
                         })
                     })

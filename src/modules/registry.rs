@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_permission_registry() {
         let mut registry = PermissionRegistry::new();
-        
+
         let permission = Permission {
             name: "users:read".to_string(),
             description: "Read user data".to_string(),

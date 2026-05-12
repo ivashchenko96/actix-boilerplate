@@ -1,5 +1,5 @@
 # Use the official Rust image as the build environment
-FROM rust:1.70 as builder
+FROM rust:stable as builder
 
 WORKDIR /app
 

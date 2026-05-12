@@ -1,10 +1,10 @@
 pub mod loader;
 
+use anyhow::Result;
 use fluent::{FluentBundle, FluentResource};
 use fluent_bundle::FluentArgs;
-use unic_langid::LanguageIdentifier;
 use std::collections::HashMap;
-use anyhow::Result;
+use unic_langid::LanguageIdentifier;
 
 use crate::config::Settings;
 
@@ -45,10 +45,7 @@ impl I18nService {
         } else {
             &self.default_locale
         };
-        let Some(ftl_content) = self
-            .resources
-            .get(selected_locale)
-        else {
+        let Some(ftl_content) = self.resources.get(selected_locale) else {
             return key.to_string();
         };
 
@@ -67,7 +64,9 @@ impl I18nService {
         if let Some(message) = bundle.get_message(key) {
             if let Some(pattern) = message.value() {
                 let mut errors = vec![];
-                return bundle.format_pattern(pattern, args, &mut errors).to_string();
+                return bundle
+                    .format_pattern(pattern, args, &mut errors)
+                    .to_string();
             }
         }
 

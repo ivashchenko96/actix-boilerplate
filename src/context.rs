@@ -1,18 +1,15 @@
-use std::sync::Arc;
-use sqlx::{PgPool, postgres::PgPoolOptions};
 use anyhow::Result;
-use tracing::{info, error};
+use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::sync::Arc;
+use tracing::{error, info};
 
 use crate::{
     config::Settings,
-    services::{
-        redis::RedisService,
-        nats::NatsService,
-        typesense::TypesenseClient,
-        storage::StorageService,
-        email::EmailService,
-    },
     i18n::I18nService,
+    services::{
+        email::EmailService, nats::NatsService, redis::RedisService, storage::StorageService,
+        typesense::TypesenseClient,
+    },
     utils::feature_flags::FeatureFlagService,
 };
 
@@ -35,7 +32,7 @@ impl AppContext {
     /// Create a new application context with all services initialized
     pub async fn new(settings: Settings) -> Result<Self> {
         let settings = Arc::new(settings);
-        
+
         info!("Initializing application context");
 
         // Initialize database connection pool
@@ -46,9 +43,15 @@ impl AppContext {
         let db = PgPoolOptions::new()
             .max_connections(settings.database.max_connections)
             .min_connections(settings.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(settings.database.connect_timeout))
-            .idle_timeout(std::time::Duration::from_secs(settings.database.idle_timeout))
-            .max_lifetime(std::time::Duration::from_secs(settings.database.max_lifetime))
+            .acquire_timeout(std::time::Duration::from_secs(
+                settings.database.connect_timeout,
+            ))
+            .idle_timeout(std::time::Duration::from_secs(
+                settings.database.idle_timeout,
+            ))
+            .max_lifetime(std::time::Duration::from_secs(
+                settings.database.max_lifetime,
+            ))
             .connect(&database_url)
             .await
             .map_err(|e| {
@@ -155,11 +158,11 @@ mod tests {
         // Note: This test would require a test database and Redis instance
         // In a real application, you'd use testcontainers or similar for integration tests
         let settings = Settings::new_for_tests();
-        
+
         // This would fail without proper test infrastructure
         // let context = AppContext::new(settings).await;
         // assert!(context.is_ok());
-        
+
         // For now, just test that we can create settings
         assert_eq!(settings.app.environment, "test");
     }
@@ -168,7 +171,7 @@ mod tests {
     fn test_feature_flag_access() {
         let settings = Settings::new_for_tests();
         let feature_flags = FeatureFlagService::new(&settings);
-        
+
         // Test accessing feature flags
         assert!(feature_flags.is_enabled("registration_enabled"));
     }

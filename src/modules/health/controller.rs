@@ -2,11 +2,7 @@ use actix_web::{web, HttpResponse, Result};
 use serde::Serialize;
 use std::sync::Arc;
 
-use crate::{
-    context::AppContext,
-    errors::{ApiResponse, AppError},
-    middleware::request_id::get_request_id_from_http_request,
-};
+use crate::{context::AppContext, errors::ApiResponse};
 
 #[derive(Serialize)]
 pub struct HealthStatus {
@@ -24,9 +20,7 @@ pub struct ServiceStatuses {
     pub nats: String,
 }
 
-pub async fn health_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn health_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     let request_id = "health-check".to_string(); // Simple for health checks
     let locale = "en".to_string();
 
@@ -35,11 +29,12 @@ pub async fn health_check(
     let redis_status = check_redis_health(&ctx).await;
     let nats_status = check_nats_health(&ctx).await;
 
-    let overall_status = if db_status == "healthy" && redis_status == "healthy" && nats_status == "healthy" {
-        "healthy"
-    } else {
-        "unhealthy"
-    };
+    let overall_status =
+        if db_status == "healthy" && redis_status == "healthy" && nats_status == "healthy" {
+            "healthy"
+        } else {
+            "unhealthy"
+        };
 
     let health_status = HealthStatus {
         status: overall_status.to_string(),
@@ -67,14 +62,12 @@ pub async fn health_check(
     }
 }
 
-pub async fn database_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn database_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     let request_id = "db-health-check".to_string();
     let locale = "en".to_string();
 
     let status = check_database_health(&ctx).await;
-    
+
     let response = ApiResponse::success(
         serde_json::json!({ "status": status }),
         "Database health check completed".to_string(),
@@ -89,14 +82,12 @@ pub async fn database_check(
     }
 }
 
-pub async fn redis_check(
-    ctx: web::Data<Arc<AppContext>>,
-) -> Result<HttpResponse> {
+pub async fn redis_check(ctx: web::Data<Arc<AppContext>>) -> Result<HttpResponse> {
     let request_id = "redis-health-check".to_string();
     let locale = "en".to_string();
 
     let status = check_redis_health(&ctx).await;
-    
+
     let response = ApiResponse::success(
         serde_json::json!({ "status": status }),
         "Redis health check completed".to_string(),

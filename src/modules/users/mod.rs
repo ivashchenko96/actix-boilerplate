@@ -1,14 +1,14 @@
-pub mod routes;
 pub mod controller;
-pub mod service;
-pub mod repository;
-pub mod models;
 pub mod dto;
 pub mod errors;
+pub mod models;
+pub mod repository;
+pub mod routes;
+pub mod service;
 
-use actix_web::web;
-use crate::modules::registry::{AppModule, PermissionRegistry, OpenApiRegistry};
 use crate::cron::CronRegistry;
+use crate::modules::registry::{AppModule, OpenApiRegistry, PermissionRegistry};
+use actix_web::web;
 
 pub struct UsersModule;
 
@@ -18,10 +18,7 @@ impl AppModule for UsersModule {
     }
 
     fn register_routes(&self, cfg: &mut web::ServiceConfig) {
-        cfg.service(
-            web::scope("/users")
-                .configure(routes::configure)
-        );
+        cfg.service(web::scope("/users").configure(routes::configure));
     }
 
     fn register_jobs(&self, _registry: &mut CronRegistry) {

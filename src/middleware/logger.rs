@@ -1,6 +1,6 @@
-use tracing_actix_web::{TracingLogger, RootSpanBuilder};
 use actix_web::dev::ServiceRequest;
 use tracing::Span;
+use tracing_actix_web::{RootSpanBuilder, TracingLogger};
 use uuid::Uuid;
 
 /// Create logger middleware with custom configuration
@@ -59,12 +59,15 @@ impl RootSpanBuilder for CustomRootSpanBuilder {
         )
     }
 
-    fn on_request_end<B>(span: Span, outcome: &Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>) {
+    fn on_request_end<B>(
+        span: Span,
+        outcome: &Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>,
+    ) {
         match outcome {
             Ok(response) => {
                 let status_code = response.status().as_u16();
                 span.record("status_code", status_code);
-                
+
                 if status_code >= 400 {
                     if status_code >= 500 {
                         tracing::error!("HTTP request completed with server error");
@@ -91,8 +94,8 @@ mod tests {
     fn test_custom_root_span_builder() {
         // Test that the CustomRootSpanBuilder can be created
         let _builder = CustomRootSpanBuilder;
-        
-        // In a real test, you would create a mock ServiceRequest 
+
+        // In a real test, you would create a mock ServiceRequest
         // and test the span creation, but that requires more setup
     }
 }

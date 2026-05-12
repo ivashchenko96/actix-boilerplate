@@ -15,7 +15,9 @@ pub async fn list_users(
     ctx: web::Data<Arc<AppContext>>,
     query: web::Query<UsersQuery>,
 ) -> Result<HttpResponse> {
-    query.validate().map_err(actix_web::error::ErrorBadRequest)?;
+    query
+        .validate()
+        .map_err(actix_web::error::ErrorBadRequest)?;
     let service = UsersService::new(UsersRepository::new(ctx.db.clone()));
     let data = service
         .list(query.into_inner())
